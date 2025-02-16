@@ -1,8 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from phi.agent import Agent
 from phi.model.groq import Groq
 from phi.tools.duckduckgo import DuckDuckGo
-import arxiv
 from phi.tools.arxiv_toolkit import ArxivToolkit
 from phi.tools.googlesearch import GoogleSearch
 from phi.tools.wikipedia import WikipediaTools
@@ -18,8 +17,19 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI()
 
-# Web search agent
-web_seach_agent = Agent(
+# Debugging Function to Check Each Agent
+def debug_agent(agent, query):
+    try:
+        print(f"🔹 Running {agent.name}...")
+        response = agent.run(query)
+        print(f"✅ {agent.name} Response: {response}")
+        return response
+    except Exception as e:
+        print(f"❌ {agent.name} Failed: {e}")
+        return f"{agent.name} failed: {e}"
+
+# ✅ Web Search Agent
+web_search_agent = Agent(
     name="Web Search Agent",
     role="Search the web for information about Knee Osteoarthritis",
     model=Groq(id="llama-3.3-70b-versatile"),
@@ -29,8 +39,8 @@ web_seach_agent = Agent(
     markdown=True,
 )
 
-# Arxiv search agent
-Arxiv_search_agent = Agent(
+# ✅ Arxiv Search Agent
+arxiv_search_agent = Agent(
     name="Arxiv Search Agent",
     role="Search Arxiv for papers about Knee Osteoarthritis",
     model=Groq(id="llama-3.3-70b-versatile"),
@@ -40,8 +50,8 @@ Arxiv_search_agent = Agent(
     markdown=True,
 )
 
-# Google search agent
-Google_search_agent = Agent(
+# ✅ Google Search Agent
+google_search_agent = Agent(
     tools=[GoogleSearch()],
     model=Groq(id="llama-3.3-70b-versatile"),
     description="Search for the latest news and articles in Knee Osteoarthritis.",
@@ -50,8 +60,8 @@ Google_search_agent = Agent(
     debug_mode=True,
 )
 
-# Wikipedia search agent
-Wikipedia_search_agent = Agent(
+# ✅ Wikipedia Search Agent
+wikipedia_search_agent = Agent(
     tools=[WikipediaTools()],
     model=Groq(id="llama-3.3-70b-versatile"),
     description="Find important Wikipedia information about Knee Osteoarthritis.",
@@ -60,8 +70,8 @@ Wikipedia_search_agent = Agent(
     debug_mode=True,
 )
 
-# PubMed search agent
-Pubmed_search_agent = Agent(
+# ✅ PubMed Search Agent
+pubmed_search_agent = Agent(
     tools=[PubmedTools()],
     model=Groq(id="llama-3.3-70b-versatile"),
     description="Search PubMed for latest research on Knee Osteoarthritis.",
@@ -70,34 +80,44 @@ Pubmed_search_agent = Agent(
     debug_mode=True,
 )
 
-# DeepSeek agent
-Deep_agent = Agent(
-    model=DeepSeekChat(),
+# ✅ DeepSeek Agent (Ensure API Key is Loaded)
+deepseek_model = DeepSeekChat(api_key=os.getenv("DEEPSEEK_API_KEY"))
+
+deep_agent = Agent(
+    model=deepseek_model,
     name="DeepSeekChat",
     id="deepseek-chat",
-    api_key=os.getenv("DEEPSEEK_API_KEY"),
-    base_url="https://api.deepseek.com",
     description="AI expert for Knee Osteoarthritis research",
     markdown=True,
 )
 
-# Multi-agent AI
+# ✅ Multi-Agent AI
 multi_ai_agent = Agent(
-    team=[web_seach_agent, Arxiv_search_agent, Google_search_agent, Wikipedia_search_agent, Pubmed_search_agent, Deep_agent],
+    team=[web_search_agent, arxiv_search_agent, google_search_agent, wikipedia_search_agent, pubmed_search_agent, deep_agent],
     instructions=["Always include sources", "Use tables for data display"],
     show_tool_calls=True,
     markdown=True,
     stream=True,
 )
 
+# ✅ Root API Endpoint
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Knee Osteoarthritis AI Research API"}
 
+# ✅ Search Endpoint - Calls All Agents Separately
 @app.get("/search/knee-osteoarthritis")
 def search_knee_osteoarthritis():
-    response = multi_ai_agent.run("Summarize the latest papers and news about Knee Osteoarthritis")
-    return {"response": response}
+    responses = {
+        "arxiv": debug_agent(arxiv_search_agent, "Summarize the latest research on Knee Osteoarthritis"),
+        "pubmed": debug_agent(pubmed_search_agent, "Find the latest medical research on Knee Osteoarthritis"),
+        "web": debug_agent(web_search_agent, "Find the latest news on Knee Osteoarthritis"),
+        "google": debug_agent(google_search_agent, "Find the latest news on Knee Osteoarthritis"),
+        "wikipedia": debug_agent(wikipedia_search_agent, "Find relevant Wikipedia articles on Knee Osteoarthritis"),
+        "deepseek": debug_agent(deep_agent, "Summarize recent AI-based research on Knee Osteoarthritis"),
+    }
+    return {"responses": responses}
 
+# ✅ Run FastAPI Server
 if __name__ == "__main__":
     uvicorn.run("appy:app", host="127.0.0.1", port=8000, reload=True)

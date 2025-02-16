@@ -17,29 +17,40 @@ if st.sidebar.button("Search"):
     with st.spinner("🔄 Fetching latest research..."):
         try:
             # Call FastAPI
-            response = requests.get(f"http://127.0.0.1:8000/search/knee-osteoarthritis")
+            response = requests.get("http://127.0.0.1:8000/search/knee-osteoarthritis")
 
             if response.status_code == 200:
-                data = response.json()["response"]
+                data = response.json()["responses"]  # Updated to match new API format
+                
+                # Display Arxiv Papers
+                if "arxiv" in data:
+                    st.subheader("📄 Research Papers from **Arxiv**")
+                    st.markdown(data["arxiv"], unsafe_allow_html=True)
 
-                # Format Sections Separately
-                if "---" in data:
-                    sections = data.split("---")
-                    latest_papers = sections[0].strip()
-                    latest_news = sections[1].strip()
-                else:
-                    latest_papers = data
-                    latest_news = ""
+                # Display PubMed Papers
+                if "pubmed" in data:
+                    st.subheader("📑 Research Papers from **PubMed**")
+                    st.markdown(data["pubmed"], unsafe_allow_html=True)
 
-                # Display Results
-                st.subheader("📄 Latest Research Papers")
-                st.markdown(latest_papers, unsafe_allow_html=True)
+                # Display Web Search Results
+                if "web" in data:
+                    st.subheader("🌐 Latest News from **Web Search**")
+                    st.markdown(data["web"], unsafe_allow_html=True)
 
-                st.subheader("📰 Latest News Articles")
-                if latest_news:
-                    st.markdown(latest_news, unsafe_allow_html=True)
-                else:
-                    st.info("No recent news articles found.")
+                # Display Google Search Results
+                if "google" in data:
+                    st.subheader("📰 Latest News from **Google**")
+                    st.markdown(data["google"], unsafe_allow_html=True)
+
+                # Display Wikipedia Results
+                if "wikipedia" in data:
+                    st.subheader("📚 Information from **Wikipedia**")
+                    st.markdown(data["wikipedia"], unsafe_allow_html=True)
+
+                # Display DeepSeek Results
+                if "deepseek" in data:
+                    st.subheader("🤖 AI Research from **DeepSeek**")
+                    st.markdown(data["deepseek"], unsafe_allow_html=True)
 
             else:
                 st.error("❌ Failed to fetch search results. API might be down.")
